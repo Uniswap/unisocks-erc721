@@ -8,6 +8,10 @@ contract ERC721Receiver:
             _data: bytes[1024]
         ) -> bytes32: constant
 
+contract URI:
+    def tokenURI(
+        _tokenId: uint256) -> string[64]: constant
+
 contract Socks:
     def totalSupply() -> uint256: constant
 
@@ -20,6 +24,7 @@ symbol: public(string[32])
 totalSupply: public(uint256)
 minter: public(address)
 socks: public(Socks)
+newURI: public(address)
 
 ownedTokensIndex: map(uint256, uint256)                             # map(tokenId, index)
 tokenOfOwnerByIndex: public(map(address, map(uint256, uint256)))    # map(owner, map(index, tokenId))
@@ -46,7 +51,10 @@ def __init__(_socks: address):
 @public
 @constant
 def tokenURI(_tokenId: uint256) -> string[64]:
-    return 'https://opensea-creatures-api.herokuapp.com/api/creature/'
+    _URI: string[64] = 'https://opensea-creatures-api.herokuapp.com/api/creature/'
+    if(self.newURI != ZERO_ADDRESS):
+        _URI = URI(self.newURI).tokenURI(_tokenId)
+    return _URI
 
 
 # Token index is same as ID and can't change
@@ -143,3 +151,8 @@ def mint(_to: address) -> bool:
 def changeMinter(_minter: address):
     assert msg.sender == self.minter
     self.minter = _minter
+
+@public
+def changeURI(_newURI: address):
+    assert msg.sender == self.minter
+    self.newURI = _newURI
