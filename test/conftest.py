@@ -36,9 +36,19 @@ def create_contract(w3, path, *args, **kwargs):
     return w3.eth.contract(abi=out['abi'], bytecode=out['bytecode'])
 
 @pytest.fixture
-def UNISOCKS(w3):
-    deploy = create_contract(w3, 'contracts/unisocks.vy')
+def SOCKS(w3):
+    deploy = create_contract(w3, 'contracts/test_contracts/socks.vy')
     tx_hash = deploy.constructor().transact()
+    tx_receipt = w3.eth.getTransactionReceipt(tx_hash)
+    return ConciseContract(w3.eth.contract(
+        address=tx_receipt.contractAddress,
+        abi=deploy.abi
+    ))
+
+@pytest.fixture
+def UNISOCKS(w3, SOCKS):
+    deploy = create_contract(w3, 'contracts/unisocks.vy')
+    tx_hash = deploy.constructor(SOCKS.address).transact()
     tx_receipt = w3.eth.getTransactionReceipt(tx_hash)
     return ConciseContract(w3.eth.contract(
         address=tx_receipt.contractAddress,

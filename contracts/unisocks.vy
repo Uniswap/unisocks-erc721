@@ -35,7 +35,7 @@ ERC721_INTERFACE_ID: constant(bytes32) = 0x0000000000000000000000000000000000000
 
 @public
 def __init__(_socks: address):
-    self.name = 'Digital Unisocks 0'
+    self.name = 'Unisocks Digital 0'
     self.symbol = 'S0CKS'
     self.minter = msg.sender
     self.socks = Socks(_socks)
