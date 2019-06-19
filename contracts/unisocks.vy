@@ -8,6 +8,9 @@ contract ERC721Receiver:
             _data: bytes[1024]
         ) -> bytes32: constant
 
+contract Socks:
+    def totalSupply() -> uint256: constant
+
 Transfer: event({_from: indexed(address), _to: indexed(address), _tokenId: indexed(uint256)})
 Approval: event({_owner: indexed(address), _approved: indexed(address), _tokenId: indexed(uint256)})
 ApprovalForAll: event({_owner: indexed(address), _operator: indexed(address), _approved: bool})
@@ -15,68 +18,70 @@ ApprovalForAll: event({_owner: indexed(address), _operator: indexed(address), _a
 name: public(string[32])
 symbol: public(string[32])
 totalSupply: public(uint256)
-
-# @dev Mapping from NFT ID to the address that owns it.
-ownerOf: public(map(uint256, address))
-
-# @dev Mapping from NFT ID to approved address.
-getApproved: public(map(uint256, address))
-
-# @dev Mapping from owner address to count of his tokens.
-balanceOf: public(map(address, uint256))
-
-# @dev Mapping from owner address to mapping of operator addresses.
-isApprovedForAll: public(map(address, map(address, bool)))
-
-# @dev Address of minter, who can mint a token
 minter: public(address)
+socks: public(Socks)
 
-# @dev Mapping of interface id to bool about whether or not it's supported
-supportsInterface: public(map(bytes32, bool))
+ownedTokensIndex: map(uint256, uint256)                             # map(tokenId, index)
+tokenOfOwnerByIndex: public(map(address, map(uint256, uint256)))    # map(owner, map(index, tokenId))
+ownerOf: public(map(uint256, address))                              # map(tokenId, owner)
+getApproved: public(map(uint256, address))                          # map(tokenId, approvedSpender)
+balanceOf: public(map(address, uint256))                            # map(owner, balance)
+isApprovedForAll: public(map(address, map(address, bool)))          # map(owner, map(operator, bool))
+supportsInterface: public(map(bytes32, bool))                       # map(interfaceId, bool)
 
 ERC165_INTERFACE_ID: constant(bytes32) = 0x0000000000000000000000000000000000000000000000000000000001ffc9a7
 ERC721_INTERFACE_ID: constant(bytes32) = 0x0000000000000000000000000000000000000000000000000000000080ac58cd
 
 
 @public
-def __init__():
-    self.supportsInterface[ERC165_INTERFACE_ID] = True
-    self.supportsInterface[ERC721_INTERFACE_ID] = True
+def __init__(_socks: address):
     self.name = 'Digital Unisocks 0'
     self.symbol = 'S0CKS'
     self.minter = msg.sender
+    self.socks = Socks(_socks)
+    self.supportsInterface[ERC165_INTERFACE_ID] = True
+    self.supportsInterface[ERC721_INTERFACE_ID] = True
 
 
-# @public
-# @constant
-# def baseTokenURI() -> string[64]:
-#     return 'https://opensea-creatures-api.herokuapp.com/api/creature/'
-#
-# @public
-# @constant
-# def tokenURI(_tokenId: uint256) -> string[64]:
-#     _tokenIdBytes: bytes[4] = convert(_tokenId, bytes[4])
-#     return concat('https://opensea-creatures-api.herokuapp.com/api/creature/', _tokenId)
-
-@private
+@public
 @constant
-def _isApprovedOrOwner(_spender: address, _tokenId: uint256):
-    owner: address = self.ownerOf[_tokenId]
-    spenderIsOwner: bool = owner == _spender
-    spenderIsApproved: bool = _spender == self.getApproved[_tokenId]
-    spenderIsApprovedForAll: bool = (self.isApprovedForAll[owner])[_spender]
-    assert (spenderIsOwner or spenderIsApproved) or spenderIsApprovedForAll
+def tokenURI(_tokenId: uint256) -> string[64]:
+    return 'https://opensea-creatures-api.herokuapp.com/api/creature/'
+
+
+# Token index is same as ID and can't change
+@public
+@constant
+def tokenByIndex(_index: uint256) -> uint256:
+    return _index
 
 
 @private
 def _transferFrom(_from: address, _to: address, _tokenId: uint256, _sender: address):
-    assert _to != ZERO_ADDRESS and self.ownerOf[_tokenId] == _from
+    _owner: address = self.ownerOf[_tokenId]
     # Check requirements
-    self._isApprovedOrOwner(_sender, _tokenId)
+    assert _to != ZERO_ADDRESS and _owner == _from
+    _senderIsOwner: bool = _owner == _sender
+    _senderIsApproved: bool = _sender == self.getApproved[_tokenId]
+    _senderIsApprovedForAll: bool = self.isApprovedForAll[_owner][_sender]
+    assert (_senderIsOwner or _senderIsApproved) or _senderIsApprovedForAll
     # Clear approval.
     if self.getApproved[_tokenId] != ZERO_ADDRESS:
         self.getApproved[_tokenId] = ZERO_ADDRESS
-    # Transfer NFT. Throws if `_tokenId` is not a valid NFT
+    # Update ownedTokensIndex and tokenOfOwnerByIndex
+    _index: uint256 = self.ownedTokensIndex[_tokenId]           # get index of _tokenId
+    _newTokenAtIndex: uint256 = 0
+    _highestIndexFrom: uint256 = self.balanceOf[_from] - 1      # get highest index of _from
+    _newHighestIndexTo: uint256 = self.balanceOf[_to]           # get next index of _to
+    # replace _index with _highestIndexFrom
+    if (_index < _highestIndexFrom):
+        _newTokenAtIndex = self.tokenOfOwnerByIndex[_from][_highestIndexFrom]
+        self.tokenOfOwnerByIndex[_from][_highestIndexFrom] = 0
+        self.ownedTokensIndex[_newTokenAtIndex] = _index
+    self.ownedTokensIndex[_tokenId] = _newHighestIndexTo
+    self.tokenOfOwnerByIndex[_from][_index] = _newTokenAtIndex     # clear index or update value
+    self.tokenOfOwnerByIndex[_to][_newHighestIndexTo] = _tokenId
+    # Update ownerOf and balanceOf
     self.ownerOf[_tokenId] = ZERO_ADDRESS
     self.balanceOf[_from] -= 1
     self.ownerOf[_tokenId] = _to
@@ -95,7 +100,7 @@ def safeTransferFrom(_from: address, _to: address, _tokenId: uint256, _data: byt
     if _to.is_contract: # check if `_to` is a contract address
         returnValue: bytes32 = ERC721Receiver(_to).onERC721Received(msg.sender, _from, _tokenId, _data)
         # Throws if transfer destination is a contract which does not implement 'onERC721Received'
-        assert returnValue == method_id("onERC721Received(address,address,uint256,bytes)", bytes32)
+        assert returnValue == method_id('onERC721Received(address,address,uint256,bytes)', bytes32)
 
 
 @public
@@ -120,14 +125,19 @@ def setApprovalForAll(_operator: address, _approved: bool):
 
 @public
 def mint(_to: address) -> bool:
-    _tokenId: uint256 = self.totalSupply
-    assert _tokenId < 500 and self.ownerOf[_tokenId] == ZERO_ADDRESS
     assert msg.sender == self.minter and _to != ZERO_ADDRESS
+    _tokenId: uint256 = self.totalSupply
+    # can only mint if a sock has been burned
+    _socksSupply: uint256 = self.socks.totalSupply()
+    _socksBurned: uint256 = 500 - _socksSupply
+    assert _tokenId < _socksBurned
+    self.ownedTokensIndex[_tokenId] = _tokenId
     self.ownerOf[_tokenId] = _to
     self.balanceOf[_to] += 1
     self.totalSupply += 1
     log.Transfer(ZERO_ADDRESS, _to, _tokenId)
     return True
+
 
 @public
 def changeMinter(_minter: address):
