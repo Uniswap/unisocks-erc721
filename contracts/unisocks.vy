@@ -65,8 +65,8 @@ def tokenByIndex(_index: uint256) -> uint256:
 
 @public
 @constant
-def tokenOfOwnerByIndex(_owner: address, _index: address) -> uint256:
-    assert _index < self.balanceOf(_owner)
+def tokenOfOwnerByIndex(_owner: address, _index: uint256) -> uint256:
+    assert _index < self.balanceOf[_owner]
     return self.ownerIndexToTokenId[_owner][_index]
 
 @private
@@ -140,9 +140,9 @@ def setApprovalForAll(_operator: address, _approved: bool):
 def mint(_to: address) -> bool:
     assert msg.sender == self.minter and _to != ZERO_ADDRESS
     _tokenId: uint256 = self.totalSupply
-    _toBal: uint256 = self.balanceOf(_to)
+    _toBal: uint256 = self.balanceOf[_to]
     # can only mint if a sock has been burned
-    _socksSupply: uint256 = self.socks.totsalSupply()
+    _socksSupply: uint256 = self.socks.totalSupply()
     _socksBurned: uint256 = 500*10**18 - _socksSupply
     assert _tokenId*10**18 < _socksBurned
     self.ownerIndexToTokenId[_to][_toBal] = _tokenId
