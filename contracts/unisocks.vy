@@ -145,9 +145,9 @@ def mint(_to: address) -> bool:
     _tokenId: uint256 = self.totalSupply
     _toBal: uint256 = self.balanceOf[_to]
     # can only mint if a sock has been burned
-    # _socksSupply: uint256 = self.socks.totalSupply()
-    # _socksBurned: uint256 = 500 * 10**18 - _socksSupply
-    # assert _tokenId * 10**18 < _socksBurned
+    _socksSupply: uint256 = self.socks.totalSupply()
+    _socksBurned: uint256 = 500 * 10**18 - _socksSupply
+    assert _tokenId * 10**18 < _socksBurned
     # update mappings
     self.ownerOf[_tokenId] = _to
     self.balanceOf[_to] += 1
