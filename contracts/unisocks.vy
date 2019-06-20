@@ -28,11 +28,11 @@ newURI: public(address)
 
 ownerOf: public(map(uint256, address))                     # map(tokenId, owner)
 balanceOf: public(map(address, uint256))                   # map(owner, balance)
-ownerIndexToTokenId: map(address, map(uint256, uint256))   # map(owner, map(index, tokenId))
-tokenIdToIndex: map(uint256, uint256)                      # map(tokenId, index)
 getApproved: public(map(uint256, address))                 # map(tokenId, approvedSpender)
 isApprovedForAll: public(map(address, map(address, bool))) # map(owner, map(operator, bool))
 supportsInterface: public(map(bytes32, bool))              # map(interfaceId, bool)
+ownerIndexToTokenId: map(address, map(uint256, uint256))   # map(owner, map(index, tokenId))
+tokenIdToIndex: map(uint256, uint256)                      # map(tokenId, index)
 
 ERC165_INTERFACE_ID: constant(bytes32) = 0x0000000000000000000000000000000000000000000000000000000001ffc9a7
 ERC721_ENUMERABLE_INTERFACE_ID: constant(bytes32) = 0x00000000000000000000000000000000000000000000000000000000780e9d63
@@ -145,9 +145,9 @@ def mint(_to: address) -> bool:
     _tokenId: uint256 = self.totalSupply
     _toBal: uint256 = self.balanceOf[_to]
     # can only mint if a sock has been burned
-    _socksSupply: uint256 = self.socks.totalSupply()
-    _socksBurned: uint256 = 500 * 10**18 - _socksSupply
-    assert _tokenId * 10**18 < _socksBurned
+    # _socksSupply: uint256 = self.socks.totalSupply()
+    # _socksBurned: uint256 = 500 * 10**18 - _socksSupply
+    # assert _tokenId * 10**18 < _socksBurned
     # update mappings
     self.ownerOf[_tokenId] = _to
     self.balanceOf[_to] += 1
