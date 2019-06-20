@@ -21,17 +21,17 @@ ApprovalForAll: event({_owner: indexed(address), _operator: indexed(address), _a
 name: public(string[32])
 symbol: public(string[32])
 totalSupply: public(uint256)
+
 minter: public(address)
 socks: public(Socks)
 newURI: public(address)
 
-tokenIdToIndex: map(uint256, uint256)                               # map(tokenId, index)
-ownerIndexToTokenId: map(address, map(uint256, uint256))            # map(owner, map(index, tokenId))
-ownerOf: public(map(uint256, address))                              # map(tokenId, owner)
-getApproved: public(map(uint256, address))                          # map(tokenId, approvedSpender)
-balanceOf: public(map(address, uint256))                            # map(owner, balance)
-isApprovedForAll: public(map(address, map(address, bool)))          # map(owner, map(operator, bool))
-supportsInterface: public(map(bytes32, bool))                       # map(interfaceId, bool)
+ownerOf: public(map(uint256, address))                     # map(tokenId, owner)
+balanceOf: public(map(address, uint256))                   # map(owner, balance)
+ownerIndexToTokenId: map(address, map(uint256, uint256))   # map(owner, map(index, tokenId))
+getApproved: public(map(uint256, address))                 # map(tokenId, approvedSpender)
+isApprovedForAll: public(map(address, map(address, bool))) # map(owner, map(operator, bool))
+supportsInterface: public(map(bytes32, bool))              # map(interfaceId, bool)
 
 ERC165_INTERFACE_ID: constant(bytes32) = 0x0000000000000000000000000000000000000000000000000000000001ffc9a7
 ERC721_ENUMERABLE_INTERFACE_ID: constant(bytes32) = 0x00000000000000000000000000000000000000000000000000000000780e9d63
@@ -77,32 +77,23 @@ def tokenOfOwnerByIndex(_owner: address, _index: uint256) -> uint256:
 def _transferFrom(_from: address, _to: address, _tokenId: uint256, _sender: address):
     _owner: address = self.ownerOf[_tokenId]
     # Check requirements
-    assert _to != ZERO_ADDRESS and _owner == _from
-    _senderIsOwner: bool = _owner == _sender
+    assert _owner == _from and _to != ZERO_ADDRESS
+    _senderIsOwner: bool = _sender == _owner
     _senderIsApproved: bool = _sender == self.getApproved[_tokenId]
     _senderIsApprovedForAll: bool = self.isApprovedForAll[_owner][_sender]
     assert _senderIsOwner or _senderIsApproved or _senderIsApprovedForAll
+    # Update ownerOf and balanceOf
+    self.ownerOf[_tokenId] = _to
+    self.balanceOf[_from] -= 1
+    self.balanceOf[_to] += 1
+    # Update ownerIndexToTokenId
+    _highestIndexFrom: uint256 = self.balanceOf[_from] - 1 # get highest index of _from
+    _newHighestIndexTo: uint256 = self.balanceOf[_to]      # get next index of _to
+    self.ownerIndexToTokenId[_from][_highestIndexFrom] = 0
+    self.ownerIndexToTokenId[_to][_newHighestIndexTo] = _tokenId
     # Clear approval.
     if self.getApproved[_tokenId] != ZERO_ADDRESS:
         self.getApproved[_tokenId] = ZERO_ADDRESS
-    # Update tokenIdToIndex and ownerIndexToTokenId
-    _index: uint256 = self.tokenIdToIndex[_tokenId]           # get index of _tokenId
-    _newTokenAtIndex: uint256 = 0
-    _highestIndexFrom: uint256 = self.balanceOf[_from] - 1      # get highest index of _from
-    _newHighestIndexTo: uint256 = self.balanceOf[_to]           # get next index of _to
-    # replace _index with _highestIndexFrom
-    if (_index < _highestIndexFrom):
-        _newTokenAtIndex = self.ownerIndexToTokenId[_from][_highestIndexFrom]
-        self.ownerIndexToTokenId[_from][_highestIndexFrom] = 0
-        self.tokenIdToIndex[_newTokenAtIndex] = _index
-    self.tokenIdToIndex[_tokenId] = _newHighestIndexTo
-    self.ownerIndexToTokenId[_from][_index] = _newTokenAtIndex     # clear index or update value
-    self.ownerIndexToTokenId[_to][_newHighestIndexTo] = _tokenId
-    # Update ownerOf and balanceOf
-    self.ownerOf[_tokenId] = ZERO_ADDRESS
-    self.balanceOf[_from] -= 1
-    self.ownerOf[_tokenId] = _to
-    self.balanceOf[_to] += 1
     log.Transfer(_from, _to, _tokenId)
 
 
@@ -123,11 +114,10 @@ def safeTransferFrom(_from: address, _to: address, _tokenId: uint256, _data: byt
 @public
 def approve(_approved: address, _tokenId: uint256):
     owner: address = self.ownerOf[_tokenId]
-    assert owner != ZERO_ADDRESS and _approved != owner
     # Check requirements
     senderIsOwner: bool = msg.sender == owner
     senderIsApprovedForAll: bool = (self.isApprovedForAll[owner])[msg.sender]
-    assert (senderIsOwner or senderIsApprovedForAll)
+    assert senderIsOwner or senderIsApprovedForAll
     # Set the approval
     self.getApproved[_tokenId] = _approved
     log.Approval(owner, _approved, _tokenId)
@@ -147,12 +137,12 @@ def mint(_to: address) -> bool:
     _toBal: uint256 = self.balanceOf[_to]
     # can only mint if a sock has been burned
     _socksSupply: uint256 = self.socks.totalSupply()
-    _socksBurned: uint256 = 500*10**18 - _socksSupply
-    assert _tokenId*10**18 < _socksBurned
-    self.ownerIndexToTokenId[_to][_toBal] = _tokenId
-    self.tokenIdToIndex[_tokenId] = _tokenId
+    _socksBurned: uint256 = 500 * 10**18 - _socksSupply
+    assert _tokenId * 10**18 < _socksBurned
+    # update mappings
     self.ownerOf[_tokenId] = _to
     self.balanceOf[_to] += 1
+    self.ownerIndexToTokenId[_to][_toBal] = _tokenId
     self.totalSupply += 1
     log.Transfer(ZERO_ADDRESS, _to, _tokenId)
     return True
