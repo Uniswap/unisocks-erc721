@@ -29,6 +29,7 @@ newURI: public(address)
 ownerOf: public(map(uint256, address))                     # map(tokenId, owner)
 balanceOf: public(map(address, uint256))                   # map(owner, balance)
 ownerIndexToTokenId: map(address, map(uint256, uint256))   # map(owner, map(index, tokenId))
+tokenIdToIndex: map(uint256, uint256)                      # map(tokenId, index)
 getApproved: public(map(uint256, address))                 # map(tokenId, approvedSpender)
 isApprovedForAll: public(map(address, map(address, bool))) # map(owner, map(operator, bool))
 supportsInterface: public(map(bytes32, bool))              # map(interfaceId, bool)
@@ -82,15 +83,23 @@ def _transferFrom(_from: address, _to: address, _tokenId: uint256, _sender: addr
     _senderIsApproved: bool = _sender == self.getApproved[_tokenId]
     _senderIsApprovedForAll: bool = self.isApprovedForAll[_owner][_sender]
     assert _senderIsOwner or _senderIsApproved or _senderIsApprovedForAll
-    # Update ownerOf and balanceOf
+    # Update ownerIndexToTokenId for _from
+    _highestIndexFrom: uint256 = self.balanceOf[_from] - 1   # get highest index of _from
+    _tokenIdIndexFrom: uint256 = self.tokenIdToIndex[_tokenId] # get index of _from where _tokenId is
+    if _highestIndexFrom == _tokenIdIndexFrom:               # _tokenId is the last token in _from's list
+        self.ownerIndexToTokenId[_from][_highestIndexFrom] = 0
+    else:
+        self.ownerIndexToTokenId[_from][_tokenIdIndexFrom] = self.ownerIndexToTokenId[_from][_highestIndexFrom]
+        self.ownerIndexToTokenId[_from][_highestIndexFrom] = 0
+    # Update ownerIndexToTokenId for _to
+    _newHighestIndexTo: uint256 = self.balanceOf[_to]
+    self.ownerIndexToTokenId[_to][_newHighestIndexTo] = _tokenId
+    # Update tokenIdToIndex
+    self.tokenIdToIndex[_tokenId] = _newHighestIndexTo
+    # update ownerOf and balanceOf
     self.ownerOf[_tokenId] = _to
     self.balanceOf[_from] -= 1
     self.balanceOf[_to] += 1
-    # Update ownerIndexToTokenId
-    _highestIndexFrom: uint256 = self.balanceOf[_from] - 1 # get highest index of _from
-    _newHighestIndexTo: uint256 = self.balanceOf[_to]      # get next index of _to
-    self.ownerIndexToTokenId[_from][_highestIndexFrom] = 0
-    self.ownerIndexToTokenId[_to][_newHighestIndexTo] = _tokenId
     # Clear approval.
     if self.getApproved[_tokenId] != ZERO_ADDRESS:
         self.getApproved[_tokenId] = ZERO_ADDRESS
@@ -143,6 +152,7 @@ def mint(_to: address) -> bool:
     self.ownerOf[_tokenId] = _to
     self.balanceOf[_to] += 1
     self.ownerIndexToTokenId[_to][_toBal] = _tokenId
+    self.tokenIdToIndex[_tokenId] = _toBal
     self.totalSupply += 1
     log.Transfer(ZERO_ADDRESS, _to, _tokenId)
     return True
