@@ -26,8 +26,8 @@ minter: public(address)
 socks: public(Socks)
 newURI: public(address)
 
-ownedTokensIndex: map(uint256, uint256)                             # map(tokenId, index)
-tokenOfOwnerByIndex: public(map(address, map(uint256, uint256)))    # map(owner, map(index, tokenId))
+tokenIdToIndex: map(uint256, uint256)                               # map(tokenId, index)
+ownerIndexToTokenId: map(address, map(uint256, uint256))            # map(owner, map(index, tokenId))
 ownerOf: public(map(uint256, address))                              # map(tokenId, owner)
 getApproved: public(map(uint256, address))                          # map(tokenId, approvedSpender)
 balanceOf: public(map(address, uint256))                            # map(owner, balance)
@@ -63,6 +63,11 @@ def tokenURI(_tokenId: uint256) -> string[64]:
 def tokenByIndex(_index: uint256) -> uint256:
     return _index
 
+@public
+@constant
+def tokenOfOwnerByIndex(_owner: address, _index: address) -> uint256:
+    assert _index < self.balanceOf(_owner)
+    return self.ownerIndexToTokenId[_owner][_index]
 
 @private
 def _transferFrom(_from: address, _to: address, _tokenId: uint256, _sender: address):
@@ -76,19 +81,19 @@ def _transferFrom(_from: address, _to: address, _tokenId: uint256, _sender: addr
     # Clear approval.
     if self.getApproved[_tokenId] != ZERO_ADDRESS:
         self.getApproved[_tokenId] = ZERO_ADDRESS
-    # Update ownedTokensIndex and tokenOfOwnerByIndex
-    _index: uint256 = self.ownedTokensIndex[_tokenId]           # get index of _tokenId
+    # Update tokenIdToIndex and ownerIndexToTokenId
+    _index: uint256 = self.tokenIdToIndex[_tokenId]           # get index of _tokenId
     _newTokenAtIndex: uint256 = 0
     _highestIndexFrom: uint256 = self.balanceOf[_from] - 1      # get highest index of _from
     _newHighestIndexTo: uint256 = self.balanceOf[_to]           # get next index of _to
     # replace _index with _highestIndexFrom
     if (_index < _highestIndexFrom):
-        _newTokenAtIndex = self.tokenOfOwnerByIndex[_from][_highestIndexFrom]
-        self.tokenOfOwnerByIndex[_from][_highestIndexFrom] = 0
-        self.ownedTokensIndex[_newTokenAtIndex] = _index
-    self.ownedTokensIndex[_tokenId] = _newHighestIndexTo
-    self.tokenOfOwnerByIndex[_from][_index] = _newTokenAtIndex     # clear index or update value
-    self.tokenOfOwnerByIndex[_to][_newHighestIndexTo] = _tokenId
+        _newTokenAtIndex = self.ownerIndexToTokenId[_from][_highestIndexFrom]
+        self.ownerIndexToTokenId[_from][_highestIndexFrom] = 0
+        self.tokenIdToIndex[_newTokenAtIndex] = _index
+    self.tokenIdToIndex[_tokenId] = _newHighestIndexTo
+    self.ownerIndexToTokenId[_from][_index] = _newTokenAtIndex     # clear index or update value
+    self.ownerIndexToTokenId[_to][_newHighestIndexTo] = _tokenId
     # Update ownerOf and balanceOf
     self.ownerOf[_tokenId] = ZERO_ADDRESS
     self.balanceOf[_from] -= 1
@@ -135,11 +140,13 @@ def setApprovalForAll(_operator: address, _approved: bool):
 def mint(_to: address) -> bool:
     assert msg.sender == self.minter and _to != ZERO_ADDRESS
     _tokenId: uint256 = self.totalSupply
+    _toBal: uint256 = self.balanceOf(_to)
     # can only mint if a sock has been burned
-    _socksSupply: uint256 = self.socks.totalSupply()
+    _socksSupply: uint256 = self.socks.totsalSupply()
     _socksBurned: uint256 = 500*10**18 - _socksSupply
     assert _tokenId*10**18 < _socksBurned
-    self.ownedTokensIndex[_tokenId] = _tokenId
+    self.ownerIndexToTokenId[_to][_toBal] = _tokenId
+    self.tokenIdToIndex[_tokenId] = _tokenId
     self.ownerOf[_tokenId] = _to
     self.balanceOf[_to] += 1
     self.totalSupply += 1
