@@ -2,15 +2,14 @@
 
 contract ERC721Receiver:
     def onERC721Received(
-            _operator: address,
-            _from: address,
-            _tokenId: uint256,
-            _data: bytes[1024]
-        ) -> bytes32: constant
+        _operator: address,
+        _from: address,
+        _tokenId: uint256,
+        _data: bytes[1024]
+    ) -> bytes32: modifying
 
 contract URI:
-    def tokenURI(
-        _tokenId: uint256) -> string[64]: constant
+    def tokenURI(_tokenId: uint256) -> string[128]: constant
 
 contract Socks:
     def totalSupply() -> uint256: constant
@@ -26,41 +25,46 @@ minter: public(address)
 socks: public(Socks)
 newURI: public(address)
 
-ownedTokensIndex: map(uint256, uint256)                             # map(tokenId, index)
-tokenOfOwnerByIndex: public(map(address, map(uint256, uint256)))    # map(owner, map(index, tokenId))
-ownerOf: public(map(uint256, address))                              # map(tokenId, owner)
-getApproved: public(map(uint256, address))                          # map(tokenId, approvedSpender)
-balanceOf: public(map(address, uint256))                            # map(owner, balance)
-isApprovedForAll: public(map(address, map(address, bool)))          # map(owner, map(operator, bool))
-supportsInterface: public(map(bytes32, bool))                       # map(interfaceId, bool)
+ownedTokensIndex: map(uint256, uint256)                          # map(tokenId, index)
+tokenOfOwnerByIndex: public(map(address, map(uint256, uint256))) # map(owner, map(index, tokenId))
+ownerOf: public(map(uint256, address))                           # map(tokenId, owner)
+getApproved: public(map(uint256, address))                       # map(tokenId, approvedSpender)
+balanceOf: public(map(address, uint256))                         # map(owner, balance)
+isApprovedForAll: public(map(address, map(address, bool)))       # map(owner, map(operator, bool))
+supportsInterface: public(map(bytes32, bool))                    # map(interfaceId, bool)
 
 ERC165_INTERFACE_ID: constant(bytes32) = 0x0000000000000000000000000000000000000000000000000000000001ffc9a7
+ERC721_ENUMERABLE_INTERFACE_ID: constant(bytes32) = 0x00000000000000000000000000000000000000000000000000000000780e9d63
+ERC721_METADATA_INTERFACE_ID: constant(bytes32) = 0x000000000000000000000000000000000000000000000000000000005b5e139f
 ERC721_INTERFACE_ID: constant(bytes32) = 0x0000000000000000000000000000000000000000000000000000000080ac58cd
 
 
 @public
 def __init__(_socks: address):
-    self.name = 'Unisocks Digital 0'
+    self.name = 'Digital Unisocks Edition 0'
     self.symbol = 'S0CKS'
     self.minter = msg.sender
     self.socks = Socks(_socks)
     self.supportsInterface[ERC165_INTERFACE_ID] = True
+    self.supportsInterface[ERC721_ENUMERABLE_INTERFACE_ID] = True
+    self.supportsInterface[ERC721_METADATA_INTERFACE_ID] = True
     self.supportsInterface[ERC721_INTERFACE_ID] = True
 
 
 @public
 @constant
-def tokenURI(_tokenId: uint256) -> string[64]:
-    _URI: string[64] = 'https://opensea-creatures-api.herokuapp.com/api/creature/'
-    if(self.newURI != ZERO_ADDRESS):
-        _URI = URI(self.newURI).tokenURI(_tokenId)
-    return _URI
+def tokenURI(_tokenId: uint256) -> string[128]:
+    if (self.newURI == ZERO_ADDRESS):
+        return 'https://cloudflare-ipfs.com/ipfs/QmNXWGs5DFxfQyjr4d6mjBLqRwoTrpcQj98b7KCgGFjN9e'
+    else:
+        return URI(self.newURI).tokenURI(_tokenId)
 
 
 # Token index is same as ID and can't change
 @public
 @constant
 def tokenByIndex(_index: uint256) -> uint256:
+    assert _index < self.totalSupply
     return _index
 
 
@@ -72,7 +76,7 @@ def _transferFrom(_from: address, _to: address, _tokenId: uint256, _sender: addr
     _senderIsOwner: bool = _owner == _sender
     _senderIsApproved: bool = _sender == self.getApproved[_tokenId]
     _senderIsApprovedForAll: bool = self.isApprovedForAll[_owner][_sender]
-    assert (_senderIsOwner or _senderIsApproved) or _senderIsApprovedForAll
+    assert _senderIsOwner or _senderIsApproved or _senderIsApprovedForAll
     # Clear approval.
     if self.getApproved[_tokenId] != ZERO_ADDRESS:
         self.getApproved[_tokenId] = ZERO_ADDRESS
@@ -105,7 +109,7 @@ def transferFrom(_from: address, _to: address, _tokenId: uint256):
 @public
 def safeTransferFrom(_from: address, _to: address, _tokenId: uint256, _data: bytes[1024]=""):
     self._transferFrom(_from, _to, _tokenId, msg.sender)
-    if _to.is_contract: # check if `_to` is a contract address
+    if _to.is_contract:
         returnValue: bytes32 = ERC721Receiver(_to).onERC721Received(msg.sender, _from, _tokenId, _data)
         # Throws if transfer destination is a contract which does not implement 'onERC721Received'
         assert returnValue == method_id('onERC721Received(address,address,uint256,bytes)', bytes32)
@@ -116,7 +120,7 @@ def approve(_approved: address, _tokenId: uint256):
     owner: address = self.ownerOf[_tokenId]
     assert owner != ZERO_ADDRESS and _approved != owner
     # Check requirements
-    senderIsOwner: bool = self.ownerOf[_tokenId] == msg.sender
+    senderIsOwner: bool = msg.sender == owner
     senderIsApprovedForAll: bool = (self.isApprovedForAll[owner])[msg.sender]
     assert (senderIsOwner or senderIsApprovedForAll)
     # Set the approval

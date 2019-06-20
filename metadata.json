@@ -1,0 +1,17 @@
+{
+  "image": "https://cloudflare-ipfs.com/ipfs/QmcsRmpwMUBqfVq6wq4zTCQA3ATHDp8bcyLigrmoEikTio",
+  "external_url": "https://unisocks.exchange",
+  "description": "Digital unisocks.", 
+  "name": "Unisocks",
+  "attributes": [
+    {
+      "trait_type": "Fuzziness",
+      "value": "Extreme"
+    },
+    {
+      "trait_type": "Version", 
+      "value": 0
+    }
+  ],
+  "background_color": "ffffff"
+}
