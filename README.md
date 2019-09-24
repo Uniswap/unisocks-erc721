@@ -2,7 +2,7 @@
 
 Image: [`QmYN3R1YY5cSVW6mNHXz86n6HAvjJoNeVGXmwrQcYqgMUU`](https://cloudflare-ipfs.com/ipfs/QmYN3R1YY5cSVW6mNHXz86n6HAvjJoNeVGXmwrQcYqgMUU)
 
-JSON: [`QmNXWGs5DFxfQyjr4d6mjBLqRwoTrpcQj98b7KCgGFjN9e`](https://cloudflare-ipfs.com/ipfs/QmNXWGs5DFxfQyjr4d6mjBLqRwoTrpcQj98b7KCgGFjN9e)
+JSON: [`QmNZEeAN1zk6hLoHHREVkZ7PoPYaoH7n6LR6w9QAcEc29h`](https://cloudflare-ipfs.com/ipfs/QmNZEeAN1zk6hLoHHREVkZ7PoPYaoH7n6LR6w9QAcEc29h)
 
 ## Addresses
 
