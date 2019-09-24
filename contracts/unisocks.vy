@@ -42,7 +42,7 @@ ERC721_INTERFACE_ID: constant(bytes32) = 0x0000000000000000000000000000000000000
 
 @public
 def __init__(_socks: address):
-    self.name = 'Digital Unisocks Edition 0'
+    self.name = 'Unisocks'
     self.symbol = 'S0CKS'
     self.minter = msg.sender
     self.socks = Socks(_socks)
@@ -56,7 +56,7 @@ def __init__(_socks: address):
 @constant
 def tokenURI(_tokenId: uint256) -> string[128]:
     if (self.newURI == ZERO_ADDRESS):
-        return 'https://cloudflare-ipfs.com/ipfs/QmNXWGs5DFxfQyjr4d6mjBLqRwoTrpcQj98b7KCgGFjN9e'
+        return 'https://cloudflare-ipfs.com/ipfs/QmNZEeAN1zk6hLoHHREVkZ7PoPYaoH7n6LR6w9QAcEc29h'
     else:
         return URI(self.newURI).tokenURI(_tokenId)
 

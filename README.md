@@ -1,31 +1,43 @@
 ## IPFS hashes
 
-Image: [`QmcsRmpwMUBqfVq6wq4zTCQA3ATHDp8bcyLigrmoEikTio`](https://cloudflare-ipfs.com/ipfs/QmcsRmpwMUBqfVq6wq4zTCQA3ATHDp8bcyLigrmoEikTio)
+Image: [`QmYN3R1YY5cSVW6mNHXz86n6HAvjJoNeVGXmwrQcYqgMUU`](https://cloudflare-ipfs.com/ipfs/QmYN3R1YY5cSVW6mNHXz86n6HAvjJoNeVGXmwrQcYqgMUU)
 
 JSON: [`QmNXWGs5DFxfQyjr4d6mjBLqRwoTrpcQj98b7KCgGFjN9e`](https://cloudflare-ipfs.com/ipfs/QmNXWGs5DFxfQyjr4d6mjBLqRwoTrpcQj98b7KCgGFjN9e)
+
+## Addresses
+
+SOCKS: [`0x23B608675a2B2fB1890d3ABBd85c5775c51691d5`](https://etherscan.io/address/0x23B608675a2B2fB1890d3ABBd85c5775c51691d5)
+
+Unisocks: [`0x65770b5283117639760beA3F867b69b3697a91dd`](https://etherscan.io/address/0x65770b5283117639760beA3F867b69b3697a91dd)
+
+UnisocksController: [`0x05931D644063954f35AFa3dBefA4725b0ad79F85`](https://etherscan.io/address/0x05931D644063954f35AFa3dBefA4725b0ad79F85)
 
 ## Installation:
 
 #### Requires [Python 3](https://www.python.org/download/releases/3.0/)
 
 1) Clone Uniswap
-```
-$ git clone https://github.com/Uniswap/unisocks-erc721
-$ cd unisocks-erc721
+
+```bash
+git clone https://github.com/Uniswap/unisocks-erc721
+cd unisocks-erc721
 ```
 
 2) Setup environment
-```
-$ python3 -m venv env
-$ source env/bin/activate
+
+```bash
+python3 -m venv env
+source env/bin/activate
 ```
 
 3) Install dependencies
-```
+
+```bash
 pip install -r requirements.txt
 ```
 
 4) Run tests
-```
-$ pytest -v test/
+
+```bash
+pytest -v test/
 ```

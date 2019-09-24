@@ -6,7 +6,7 @@ from test.constants import (
 
 def test_init(w3, SOCKS, UNISOCKS):
     a0, a1 = w3.eth.accounts[:2]
-    assert UNISOCKS.name() == 'Digital Unisocks Edition 0'
+    assert UNISOCKS.name() == 'Unisocks'
     assert UNISOCKS.symbol() == 'S0CKS'
     assert UNISOCKS.totalSupply() == 0
     assert UNISOCKS.minter() == a0
